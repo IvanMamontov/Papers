@@ -1,0 +1,35 @@
+\title{Fast Decompression Lucene Codec}
+\author{Ivan Mamontov \\ 
+Grid Dynamics}
+\date{\today}
+
+
+\documentclass[12pt]{article}
+
+\usepackage{url} 
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+
+Sorted lists of integers are commonly used in Lucene's implementation of inverted index. Those lists are often compressed in-memory as a trade-off between memory footprint and access speed and CPU utilization. Thus, encoding and, more important, decoding of these lists consumes significant CPU time. 
+
+We can use a SIMD instructions available in modern commodity processors to boost integer decompression performance. 
+Key obstacle here is that Java/HotSpot doesn't provide access to SIMD instructions. Calling a JNI method from Java is rather expensive comparing to a simple C function call. Fortunately, for cases when native method just perform some encoding/decoding on a byte array, HotSpot has a private interface (it will likely to become a more standard extension) which adds a minimum overhead to the native routine.
+
+In this talk we will show our prototype of Lucene Codec which uses a simple C library for compressing lists of integers using binary packing and SIMD instructions(\url{https://github.com/lemire/simdcomp}), which significantly improves decoding throughput.
+
+\end{abstract}
+
+%\section{Introduction}
+
+%\section{Previous work}\label{previous work}
+
+%\section{Results}\label{results}
+
+%\section{Conclusions}\label{conclusions}
+
+%http://www.stepanovpapers.com/CIKM_2011.pdf
+
+\end{document}
