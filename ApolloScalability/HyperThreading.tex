@@ -5,6 +5,7 @@
 \usepackage{lipsum}
 \usepackage[many]{tcolorbox}
 \usepackage{ucs}
+\usepackage{ulem}
 \usepackage{listings}
 \usepackage[utf8x]{inputenc}
 \usepackage{hyperref}
@@ -42,7 +43,7 @@
 
 \begin{abstract}
 
-This paper characterizes the performance of Apollo on a quite modern Intel\circledR Core\textsuperscript{TM} i7 CPU with Hyper-Threading Technology(HT). Using the performance counters provided by Intel, we quantitatively evaluate micro-architecture metrics while running Apollo. The experimental results reveal that: (1) HT can't improve the performance of Apollo under load; (2) The resource contentions within CPU are the major reason of pipeline inefficiency, which prevents better performance promised by HT; (3) CPU utilization isn't a good estimate of the true load on the system with enabled HT.
+This paper characterizes the performance of Apollo on a quite modern Intel\circledR Core\textsuperscript{TM} i7 CPU with Hyper-Threading Technology(HT). Using the performance counters provided by Intel, we quantitatively evaluate micro-architecture metrics while running Apollo. The experimental results reveal that: (1) HT can't improve throughput of Apollo; (2) The resource contentions within CPU are the major reason of pipeline inefficiency, which prevents better performance promised by HT; (3) CPU utilization isn't a good estimate of the true load on the system with enabled HT.
 
 \end{abstract}
 
@@ -70,14 +71,14 @@ Because instructions from several threads execute simultaneously, threads compet
 
 \subsection{Problem definition}
 
-HT can be quite a misleading, for example, if CPU with HT shows 40\% CPU usage, this does not mean that this CPU can handle more than 2 times more work. So when it comes to capacity planning, it's easy to be duped into thinking that CPU utilization is a good estimate of the true load on the system with enabled HT.
+The key principle in achieving acceptable server performance is to avoid running the server at maximum hardware resource utilization on a regular basis, so it is important to establish acceptable thresholds for hardware resource utilization to provide a reserve capacity for peak utilization periods. In this case HT can be quite a misleading, for example, if CPU with HT shows 40\% CPU usage, this does not mean that this CPU can handle more than 2 times more work. So when it comes to capacity planning, it's easy to be duped into thinking that CPU utilization is a good estimate of the true load on the system with enabled HT. 
 
 \subsection{Experimental platform}
 
 To get a better understanding of how HT impacts performance, consider a single-socket Intel Core i7 processor-based system with four cores (Intel Xeon will have the same result as it uses the same microarchitecture).
 
 \begin{itemize}
-	\item {\em OS:} RHEL 7 (kernel 3.10) with CFQ (complete fair queuing) scheduler. 
+	\item {\em OS:} RHEL 7 (kernel 3.10) with complete fair queuing (CFQ) scheduler. 
 	\item {\em CPU:} 2.80GHz Intel\circledR Core\textsuperscript{TM} i7 CPU 860 processor with 4 physical cores and 8 hyper-threads. This is a Nehalem - quite old hardware but similar to that used in production.
 	\item {\em Memory:} 16GB of dual channel DDR3 memory at 1600MHz.
 	\item {\em JVM:} Oracle JDK 1.7.0\_75 with production-like settings.
@@ -92,7 +93,7 @@ Let's assume a jagger\cite{jagger} test which is capable to produce a linearly i
 	\item HT is enabled, Apollo uses eight software threads;
 \end{itemize} 
 
-Figure~\ref{fig:load} shows the results of these experiment. 
+Figure~\ref{fig:load} shows the result of these experiments. In both cases we have the same upper bound on system throughput. Since there is no significant difference between the results most likely this is throughput of the shared resource when its utilization reaches one.
 
 \begin{figure}[h]
     \centering
@@ -113,8 +114,7 @@ Figure~\ref{fig:load} shows the results of these experiment.
       		(290, 15) 
       		(390, 20)
       		(490, 25)
-      		(590, 25)
-      		(600, 25)
+      		(590, 30)
       	};
       	\addplot[blue,very thick,mark=none] table {resources/apollo-search-throughput.csv};
       	\addplot[red,very thick,mark=none] table {resources/apollo-search-throughput2.csv};
@@ -127,6 +127,9 @@ Figure~\ref{fig:load} shows the results of these experiment.
 \section{Analysis}
 
 \subsection{CPU utilization}
+
+
+CPU utilization grows linearly until the processor reaches about 70 percent utilization without HT and 40 percent with HT as illustrated in Figure~\ref{fig:cpu}. At that point, CPU utilization becomes exponential and rises quickly. \sout{This is referred to in some books as the asymptotic upper bound\cite{bound}.} \marginpar{TODO}
 
 HT has implications for the operating system because each thread appears to the operating system as a separate CPU. So if there is only enough work to keep each hardware thread busy at a certain point in time the operating system will have to place active threads on cores before scheduling on threads on the same core. In other words, up to 50\% of CPU utilization there is almost no difference between HT and non HT CPUs. Figure~\ref{fig:cpu} shows this theory in practice. The results are more than illustrative -- HT does not actually give twice more power in our case. As we can see at 50\% of CPU utilization, the CPU becomes overloaded because the two threads running in the same core are competing for the same resources. If each of the two threads gets only half the amount of a limiting resource then it will run at half speed, and the advantage of HT is completely gone. Two threads running at half speed is certainly not better than a single thread running at full speed.
 
@@ -315,7 +318,9 @@ Obviously, it can be quite difficult to predict whether HT is good or bad for a 
   \bibitem{gregg} Brendan D. Gregg {\em Active Benchmarking} http://www.brendangregg.com/activebenchmarking.html
   
   \bibitem{perf} \url{https://perf.wiki.kernel.org/index.php/Main_Page}
-
+  
+  \bibitem{bound} Edward D. Lazowska, John Zahorjan {\em Quantitative System Performance} \url{http://homes.cs.washington.edu/~lazowska/qsp/Images/Chap_05.pdf}
+    
 \end{thebibliography}
 
 \end{document}
