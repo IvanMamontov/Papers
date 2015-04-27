@@ -18,8 +18,8 @@
 \usepackage{pgfplotstable} 
 \usepgfplotslibrary{fillbetween}
 
-\usepackage[printwatermark]{xwatermark}
-\newwatermark[allpages,color=gray!15,angle=45,scale=3,xpos=0,ypos=0]{DRAFT}
+%\usepackage[printwatermark]{xwatermark}
+%\newwatermark[allpages,color=gray!15,angle=45,scale=3,xpos=0,ypos=0]{DRAFT}
 
 %To get the bibliography to be listed in the ToC as an unnumbered sectional unit (chapter or section), use tocbibind without the numbib option
 \usepackage[nottoc,notlot,notlof]{tocbibind}
@@ -58,7 +58,7 @@ Over the years, a number of multithreading techniques have been employed to hide
     \item {\em partitioned resources} tagged by the thread number, such as load buffer, store buffer, and reorder buffer;
     \item {\em shared resources} such as:
     \begin{itemize}
-    		\item Istruction fetchers, decoders etc are co-operatively shared between HTs. That is the fetch/decode path alternates between HT threads on each CPU tick. This halves the rate at which instructions can be input at the top of the pipe.
+    		\item Instruction fetchers, decoders etc are cooperatively shared between HTs. That is the fetch/decode path alternates between HT threads on each CPU tick. This halves the rate at which instructions can be input at the top of the pipe.
     		\item L1/L2 and TLB space, and for branch prediction resources.
     		\item Reservation Station (RS), where the uops wait until their inputs are available, space in the Reorder Buffer, where the uops wait until they can be retired sufficient load and store buffers in the case of memory related uops
     \end{itemize}
@@ -193,7 +193,7 @@ HT has implications for the operating system because each thread appears to the 
 
 In order to better understand the bottleneck it will be useful to use Performance Monitoring Unit (PMU) which is a set of special-purpose registers built into modern microprocessors to store the counts of hardware-related activities such as instruction cycles, cache hits, cache misses, branch misses and many others. Compared to software profilers, hardware counters provide low-overhead access to a wealth of detailed performance information related to CPU's functional units, caches and main memory etc. Another benefit of using them is that no source code modifications are needed in general.
 
-If the performance is limited by any of the shared resources, for example highest-level cache, which is called before accessing memory, is usually referred to as the last level cache(LLC), then the total performance is not increased by HT. Actually, in the worst cases the total performance is decreased by HT because this resources are wasted when the two threads compete for the same resources. Figure~\ref{fig:llc} presents the last level cache misses per 1000 instructions.
+The first thing which is worth paying attention to is shared resources. If the performance is limited by any of the shared resources, for example highest-level cache, which is called before accessing memory, is usually referred to as the last level cache(LLC), then the total performance is not increased by HT. Actually, in the worst cases the total performance is decreased by HT because this resources are wasted when the two threads compete for the same resources. Figure~\ref{fig:llc} presents the last level cache misses per 1000 instructions.
 
 \begin{figure}[h]
     \centering
@@ -242,34 +242,43 @@ If the performance is limited by any of the shared resources, for example highes
     \label{fig:llc}
 \end{figure}
 
+The miss rate increases significantly in case of enabled HT which is caused by the extremely large memory footprint, which does not fit in the LLC cache.
 
+Another shared resources are instruction fetchers and decoders. There are a lot of stalled frontend instructions in frontend - Figure~\ref{fig:front1}. 
 
-\begin{verbatim}
-      74360.715495   task-clock (msec)         #    3.835 CPUs utilized                                             
-    84,400,226,408   stalled-cycles-frontend   #   55.59% frontend cycles idle    
-    41,616,239,021   stalled-cycles-backend    #   27.41% backend  cycles idle    
-   170,735,558,048   instructions              #    1.12  insns per cycle        
-                                               #    0.49  stalled cycles per insn                   
-       716,316,970   branch-misses             #    2.33% of all branches         
-\end{verbatim}
+\begin{figure}[h]
+	\begin{verbatim}
+    		  74360.715495   task-clock (msec)         #    3.835 CPUs utilized                                             
+    		84,400,226,408   stalled-cycles-frontend   #   55.59% frontend cycles idle    
+    		41,616,239,021   stalled-cycles-backend    #   27.41% backend  cycles idle    
+   	170,735,558,048   instructions              #    1.12  insns per cycle        
+     	                                          #    0.49  stalled cycles per insn                   
+        716,316,970   branch-misses             #    2.33% of all branches         
+	\end{verbatim}
+	\caption{IPC and frontend stalls without HT}
+    \label{fig:front1}
+\end{figure}
 
-After ss
+The saddest thing is that it gets worse with HT, as shown in Figure~\ref{fig:front2}. Following up on this difference will be interesting, but outside the scope of this work. This observation is another example why HT can't improve throughput of Apollo.
 
-\begin{verbatim}
-     137014.930439   task-clock (msec)         #    7.839 CPUs utilized                                          
-   170,689,428,657   stalled-cycles-frontend   #   70.69% frontend cycles idle    
-    47,010,900,540   stalled-cycles-backend    #   19.47% backend  cycles idle    
-   187,613,979,340   instructions              #    0.78  insns per cycle        
-                                               #    0.91  stalled cycles per insn                
-       915,996,259   branch-misses             #    2.70% of all branches         
-\end{verbatim}
+\begin{figure}[h]
+	\begin{verbatim}
+    		  137014.930439   task-clock (msec)         #    7.839 CPUs utilized                                          
+   		 170,689,428,657   stalled-cycles-frontend   #   70.69% frontend cycles idle    
+  	   47,010,900,540   stalled-cycles-backend    #   19.47% backend  cycles idle    
+   		 187,613,979,340   instructions              #    0.78  insns per cycle        
+        		                                        #    0.91  stalled cycles per insn                
+       		 915,996,259   branch-misses             #    2.70% of all branches         
+	\end{verbatim}
+	\caption{IPC and frontend stalls with HT}
+    \label{fig:front2}
+\end{figure}
 
+Usually, stalled cycles are cycles where the processor is waiting for something (memory to be feed after executing a load operation for example) and doesn't have any other stuff to do. Moreover, the frontend part of the CPU is the piece of hardware responsible to fetch and decode instructions (convert them to uops) where as the backend part is responsible to effectively execute the uops.
 
 \section{Conclusion}
 
-Obviously, it can be quite difficult to predict whether HT is good or bad for a particular application. The only safe way of answering this question is to test it. Ideally, we should test our application on several different microprocessors with several different data sets with HT turned on and off.
-
-%Latency is probably always a little worse when HT is on. Throughput may be improved only if you can multithread your workload and that the workload was previously resource limited by something other than CPU execution resources. If CPU resources are the limiting factor, having two independent instruction streams competing for them won't help with either throughput or latency.
+Obviously, it can be quite difficult to predict whether HT is good or bad for a particular application. The only safe way of answering this question is to test it. Ideally, we should test our application on several different microprocessors with several different data sets with HT turned on and off. Throughput may be improved only if you can multithread your workload and that the workload was previously resource limited by something other than CPU execution resources. If CPU resources are the limiting factor, having two independent instruction streams competing for them won't help with either throughput or latency.
 
 
 %Intel(R) Core(TM) i7 CPU 860 @ 2.80GHz "Intel(r) microarchitecture codename Nehalem/Nehalem-EP"
@@ -308,7 +317,7 @@ Obviously, it can be quite difficult to predict whether HT is good or bad for a 
   
   \bibitem{} Wei Huang, Jiang Lin, Zhao Zhang, J. Morris Chang{\em Performance Characterization of Java Applications on SMT Processors}
   
-  \bibitem{vtune} Intel Corp. {\em VTune performance analyzer.} Available at \url{http://www.intel.com/software/products/vtune/}
+  \bibitem{vtune} Intel Corp. {\em VTune performance analyzer.} \url{http://www.intel.com/software/products/vtune/}
   
   \bibitem{intel3} Intel Corp. {\em Intel® 64 and IA-32 Architectures Optimization Reference Manual} \url{http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html}
 
