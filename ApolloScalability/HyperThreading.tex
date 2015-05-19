@@ -219,6 +219,19 @@ The first thing which is worth paying attention to is shared resources. If the p
         		 ymajorgrids, tick align=inside,
 			 ]
 	\addplot[draw=none, fill=blue!40] coordinates {
+      (50,  0.95)
+      (100, 1.4) 
+      (150, 2.1)
+      (200, 2.68) 
+      (250, 3.83) 
+      (300, 4.58)
+      (350, 6.03) 
+      (400, 7.38) 
+      (450, 8) 
+      (500, 8.7) 
+	  (550, 8.9) 
+      (600, 8.7) };      
+	\addplot[draw=none,fill=red!40]  coordinates {
       (50, 1.14)
       (100, 1.77) 
       (150, 2.31)
@@ -231,20 +244,7 @@ The first thing which is worth paying attention to is shared resources. If the p
       (500, 14.84) 
 	  (550, 16.67) 
       (600, 16.63) };
-	\addplot[draw=none,fill=red!40]  coordinates {
-      (50,  0.95)
-      (100, 1.4) 
-      (150, 2.1)
-      (200, 2.68) 
-      (250, 3.83) 
-      (300, 4.58)
-      (350, 6.03) 
-      (400, 7.38) 
-      (450, 8) 
-      (500, 8.7) 
-	  (550, 8.9) 
-      (600, 8.7) };
-      \legend{HyperThreading On,HyperThreading Off}
+      \legend{HyperThreading Off, HyperThreading On}
 	\end{axis}
 	\end{tikzpicture}
 	\caption{LLC cache misses per 1,000 instructions}

@@ -1,22 +1,101 @@
 \documentclass{beamer}
-
+\usepackage[latin1]{inputenc}
 \usetheme{Berlin}
 
 \title{Fast Decompression Lucene Codec}
-\author{Ivan Mamontov}
+\author{Ivan Mamontov\\ Grid Dynamics}
+\institute{Berlin Buzzwords}
 \date{Jun 1st, 2015}
 
 \begin{document}
 	\begin{frame}
 		\titlepage
-		\insertinstitute{Grid Dynamics}
 	\end{frame}
-  	\begin{frame}
-		\frametitle{Table of Contents}
-		\tableofcontents[currentsection]
+	\begin{frame}
+    		\begin{itemize}
+    		    \item What is SISD?
+  			\item What is SIMD?
+  			\item What is variable byte encoding?
+  			\item What is PFOR encoding?
+  			\item Why does it matter?
+		\end{itemize}
   	\end{frame}
   	\begin{frame}
-    		\frametitle{This is the second slide}
-    		\framesubtitle{A bit more information about this}
+  		\frametitle{Lucene Codecs}
+  		\begin{itemize}
+  			\item variable-byte coding of delta values
+  			\item block tree schema that uses shared prefix
+deltas per block of terms
+  		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+%With conventional scalar operations, four add instructions must be executed one after another to obtain the sums as shown
+    		\frametitle{What is SISD?}
+    		\begin{itemize}
+    		    \item Single Instruction Single Data (SISD)
+		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+    		\frametitle{What is SIMD?}
+    		\begin{itemize}
+    		    \item Single Instruction Multiple Data (SIMD)
+		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+    		\frametitle{Why does it matter?}
+    		\begin{itemize}
+    		    \item pros
+    		    \begin{itemize}
+    		    		\item 75\% fewer loads
+    		    		\item 75\% fewer adds
+    		    		\item 75\% fewer stores
+    		    \end{itemize}
+    		    \item cons
+    		    \begin{itemize}
+    		    		\item not all algorithms can be vectorized
+    		    		\item most compilers don't generate SIMD instructions
+    		    		\item SIMD may have restrictions on data alignment
+    		    \end{itemize}
+		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable int encoding?}
+  		\begin{itemize}
+  			\item uses an integral number of bytes to encode a gap
+  			\begin{itemize}
+  				\item the first bit of the byte is a continuation bit. It is set to 1 for the last byte of the encoded gap and to 0 otherwise
+  				\item the last 7 bits of a byte are \textbf{payload} and encode part of the gap
+  			\end{itemize}
+  		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable int encoding?}
+  		Example
+  		
+  		input:    1, 2, 129, ...
+  		
+  		gaps:     1, 1, 127, ...
+  		
+  		output: {\color{red!100}1}0000001, {\color{red!100}1}0000001, {\color{red!100}1}1111111
+  		
+  		Compression ratio 
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable int encoding?}
+  		\begin{itemize}
+    		    \item pros
+    		    \begin{itemize}
+    		    		\item wonderfully simple
+    		    		\item good compression rate
+    		    \end{itemize}
+    		    \item cons
+    		    \begin{itemize}
+    		    		\item it requires an if statement on every byte	during decode, which is very costly since the	 CPU	 cannot easily predict the branch outcome.
+    		    \end{itemize}
+		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable int encoding?}
+  		
   	\end{frame}
 \end{document}
