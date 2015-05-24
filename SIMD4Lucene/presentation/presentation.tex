@@ -1,6 +1,8 @@
 \documentclass{beamer}
 \usepackage[latin1]{inputenc}
+\usepackage{tikz}
 \usetheme{Berlin}
+\usetikzlibrary{arrows.meta,chains,decorations.pathreplacing}
 
 \title{Fast Decompression Lucene Codec}
 \author{Ivan Mamontov\\ Grid Dynamics}
@@ -21,12 +23,102 @@
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
-  		\frametitle{Lucene Codecs}
+  		\frametitle{Data encoding and file formats}
   		\begin{itemize}
-  			\item variable-byte coding of delta values
-  			\item block tree schema that uses shared prefix
-deltas per block of terms
+  			\item Lucene 3.x and before
+  			\begin{itemize}
+  				\item Tuned to pre-defined data types
+  				\item Combinations of delta encoding and variable length byte encodings
+  				\item Hardcoded choices -- impossible to customize
+  				\item Dependencies on specific file-system behaviors
+  				\item Data coding happened in many places
+  			\end{itemize}
+	  			\item Lucene 4 and onwards
+  					\begin{itemize}
+  						\item All data writing and reading abstracted from data encoding
+  						\item Highly customizable, easy to use API
+  					\end{itemize}		
   		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{Lucene 5.0 index format}
+  		The default Lucene50 codec is:
+  		\begin{itemize}
+  			\item variable-byte and fixed-width encoding of delta values
+  			\item multi-level skip lists
+  			\item natural ordering of docIDs
+  			\item encodes both term frequencies and positional information
+  		\end{itemize}
+  	\end{frame}
+
+  	\begin{frame}
+  		\frametitle{What is variable-byte encoding?}
+%  		\begin{itemize}
+%  			\item uses an integral number of bytes to encode a gap
+%  			\begin{itemize}
+%  				\item the first bit of the byte is a continuation bit. It is set to 1 for the last byte of the encoded gap and to 0 otherwise
+%  				\item the last 7 bits of a byte are \textbf{payload} and encode part of the gap
+%  			\end{itemize}
+%  		\end{itemize}
+  		Encode sequence of numbers into variable-length bytes using one status bit per byte indicating whether the current number expands into next byte.
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable-byte encoding?}
+  		To encode the decimal number 6917:
+		\vskip15pt 
+  		\begin{tikzpicture}[
+ 		      	start chain = going right,
+     			node distance = 0pt,
+				ArrayStyle/.style={draw, minimum width=3.5em, minimum 									height=2em, outer sep=0pt, on chain}]
+			\node [ArrayStyle] (1) {{\color{red!100}1}};
+			\node [ArrayStyle, minimum width=8em] (2) {0 1 1 0 1 1 0};
+			\node [ArrayStyle, xshift=1em] (3) {{\color{red!100}0}};
+			\node [ArrayStyle, minimum width=8em] (4) {0 0 0 0 1 0 1};
+			\begin{scope}[-{Stealth[length = 2.5pt]}]
+  				\draw (1.north) [out=25, in=155] to (3.north);
+			\end{scope}
+			\draw[decorate,decoration={brace, amplitude=10pt, 					raise=5pt, mirror}]
+  				(2.south west) to node[black,midway,below= 15pt] 				{$7$ data bits} (2.south east);
+			\draw[decorate,decoration={brace, amplitude=10pt, 					raise=5pt, mirror}]
+  				(1.south west) to node[black,midway,below= 15pt] 				{$1$ status bit} (1.south east);
+		\end{tikzpicture} 
+		\vskip15pt 	
+		\pause
+		Thus needs 2 bytes instead of 4 bytes!
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is variable-byte encoding?}
+  		\begin{itemize}
+    		    \item pros
+    		    \begin{itemize}
+    		    		\item wonderfully simple
+    		    		\item good compression rate
+    		    \end{itemize}
+    		    \item cons
+    		    \begin{itemize}
+    		    		\item it requires an if statement on every byte	during decode, which is very costly since the CPU cannot easily predict the branch outcome.
+    		    \end{itemize}
+		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is PFOR encoding?}
+  		PFOR	 -- patched frame-of-reference encoding
+  		\begin{itemize}
+  			\item takes each fixed block of ints and stores them all as packed ints, where each value gets N bits, set by the maximum int in the block.
+  			\item marks large numbers as exceptions, which are then "patched" after the initial decode.	
+  		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is PFOR encoding?}
+  		
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is PFOR encoding?}
+  		
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{What is PFOR encoding?}
+  		
   	\end{frame}
   	\begin{frame}
 %With conventional scalar operations, four add instructions must be executed one after another to obtain the sums as shown
@@ -57,45 +149,6 @@ deltas per block of terms
     		    		\item SIMD may have restrictions on data alignment
     		    \end{itemize}
 		\end{itemize}
-  	\end{frame}
-  	\begin{frame}
-  		\frametitle{What is variable int encoding?}
-  		\begin{itemize}
-  			\item uses an integral number of bytes to encode a gap
-  			\begin{itemize}
-  				\item the first bit of the byte is a continuation bit. It is set to 1 for the last byte of the encoded gap and to 0 otherwise
-  				\item the last 7 bits of a byte are \textbf{payload} and encode part of the gap
-  			\end{itemize}
-  		\end{itemize}
-  	\end{frame}
-  	\begin{frame}
-  		\frametitle{What is variable int encoding?}
-  		Example
-  		
-  		input:    1, 2, 129, ...
-  		
-  		gaps:     1, 1, 127, ...
-  		
-  		output: {\color{red!100}1}0000001, {\color{red!100}1}0000001, {\color{red!100}1}1111111
-  		
-  		Compression ratio 
-  	\end{frame}
-  	\begin{frame}
-  		\frametitle{What is variable int encoding?}
-  		\begin{itemize}
-    		    \item pros
-    		    \begin{itemize}
-    		    		\item wonderfully simple
-    		    		\item good compression rate
-    		    \end{itemize}
-    		    \item cons
-    		    \begin{itemize}
-    		    		\item it requires an if statement on every byte	during decode, which is very costly since the	 CPU	 cannot easily predict the branch outcome.
-    		    \end{itemize}
-		\end{itemize}
-  	\end{frame}
-  	\begin{frame}
-  		\frametitle{What is variable int encoding?}
-  		
-  	\end{frame}
+  	\end{frame}  	
+  	
 \end{document}
