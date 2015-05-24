@@ -1,8 +1,9 @@
 \documentclass{beamer}
 \usepackage[latin1]{inputenc}
 \usepackage{tikz}
+\usepackage{makecell}
 \usetheme{Berlin}
-\usetikzlibrary{arrows.meta,chains,decorations.pathreplacing}
+\usetikzlibrary{arrows.meta,chains,decorations.pathreplacing,automata,positioning}
 
 \title{Fast Decompression Lucene Codec}
 \author{Ivan Mamontov\\ Grid Dynamics}
@@ -101,23 +102,54 @@
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
-  		\frametitle{What is PFOR encoding?}
-  		PFOR	 -- patched frame-of-reference encoding
+  		\frametitle{What is PForDelta encoding?}
+  		PForDelta -- patched frame-of-reference encoding
   		\begin{itemize}
   			\item takes each fixed block of ints and stores them all as packed ints, where each value gets N bits, set by the maximum int in the block.
   			\item marks large numbers as exceptions, which are then "patched" after the initial decode.	
   		\end{itemize}
   	\end{frame}
   	\begin{frame}
-  		\frametitle{What is PFOR encoding?}
-  		
+  		\frametitle{What is PForDelta encoding?}
+  		To encode the following numbers 1, 3, 7, 10, 13, 14, 18:
+		\vskip15pt 
+  		\begin{tikzpicture}[
+ 		      	start chain = going right,
+     			node distance = 0pt,
+				ArrayStyle/.style={draw, minimum width=3.5em, minimum 									height=2em, outer sep=0pt, on chain}]		
+			\node [ArrayStyle] (1) {{\color{red!100}000011}};
+			\node [ArrayStyle, minimum width=3em] (2) {0 1 0};
+			\node [ArrayStyle, minimum width=3em] (3) {1 0 0};
+			\node [ArrayStyle, minimum width=3em] (4) {0 1 1};
+			\node [ArrayStyle, minimum width=3em] (5) {0 1 1};	
+			\node [ArrayStyle, minimum width=3em] (6) {0 0 1};
+			\node [ArrayStyle, minimum width=3em] (7) {1 0 0};	
+			\draw[decorate,decoration={brace, amplitude=10pt, 					raise=5pt, mirror}]
+  				(2.south west) to node[black,midway,below= 15pt] 				{18 data bits} (7.south east);
+			\draw[decorate,decoration={brace, amplitude=10pt, 					raise=5pt, mirror}]
+  				(1.south west) to node[black,midway,below= 15pt] 				{\makecell[c]{number of bits\\per value}} (1.south east);
+		\end{tikzpicture} 
+		\vskip15pt 	
+		\pause
+		Thus needs 3 bytes instead of $7*4=32$ bytes!
   	\end{frame}
   	\begin{frame}
-  		\frametitle{What is PFOR encoding?}
-  		
+  		\frametitle{What is PForDelta encoding?}
+  		\begin{itemize}
+    		    \item pros
+    		    \begin{itemize}
+    		    		\item \mbox{ultra-fast} decoding speed.% Up to 2 times faster than in \mbox{variable-byte} encoding
+    		    		\item 
+    		    \end{itemize}
+    		    \item cons
+    		    \begin{itemize}
+    		    		\item in order to access even one int within the block, we must decode the full block
+    		    		\item requires integers in batches of multiples of 32
+    		    \end{itemize}
+		\end{itemize}  		
   	\end{frame}
   	\begin{frame}
-  		\frametitle{What is PFOR encoding?}
+  		\frametitle{What is PForDelta encoding?}
   		
   	\end{frame}
   	\begin{frame}
