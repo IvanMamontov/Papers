@@ -3,7 +3,16 @@
 \usepackage{tikz}
 \usepackage{makecell}
 \usetheme{Berlin}
-\usetikzlibrary{arrows.meta,chains,decorations.pathreplacing,automata,positioning}
+\usetikzlibrary{
+	arrows.meta,
+	chains,
+	decorations.pathreplacing,
+	automata,
+	positioning,
+	scopes,
+	quotes,
+	shapes	
+}
 
 \title{Fast Decompression Lucene Codec}
 \author{Ivan Mamontov\\ Grid Dynamics}
@@ -16,11 +25,7 @@
 	\end{frame}
 	\begin{frame}
     		\begin{itemize}
-    		    \item What is SISD?
-  			\item What is SIMD?
-  			\item What is variable byte encoding?
-  			\item What is PFOR encoding?
-  			\item Why does it matter?
+    		    \item TOC!!!
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
@@ -139,7 +144,7 @@
     		    \item pros
     		    \begin{itemize}
     		    		\item \mbox{ultra-fast} decoding speed.% Up to 2 times faster than in \mbox{variable-byte} encoding
-    		    		\item 
+    		    		\item {\color{red!100} TODO something about SIMD/modern CPUs}
     		    \end{itemize}
     		    \item cons
     		    \begin{itemize}
@@ -149,20 +154,23 @@
 		\end{itemize}  		
   	\end{frame}
   	\begin{frame}
-  		\frametitle{What is PForDelta encoding?}
-  		
-  	\end{frame}
-  	\begin{frame}
 %With conventional scalar operations, four add instructions must be executed one after another to obtain the sums as shown
     		\frametitle{What is SISD?}
     		\begin{itemize}
     		    \item Single Instruction Single Data (SISD)
+    		    	\vskip15pt 
+    		    \begin{tikzpicture}[start chain = going right]
+   				\node[on chain] (A) {A};
+   				\node[on chain,join=by {->}] (B) {B};
+   				\node[on chain,join=by {<-}] (C) {C};
+			\end{tikzpicture}
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
     		\frametitle{What is SIMD?}
     		\begin{itemize}
     		    \item Single Instruction Multiple Data (SIMD)
+		    
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
@@ -182,5 +190,18 @@
     		    \end{itemize}
 		\end{itemize}
   	\end{frame}  	
-  	
+  	\begin{frame}
+  		\frametitle{SIMD auto-vectorization in HotSpot}
+  		%Sometimes it is possible to move the kernel to C/C++, use SIMD there and call via JNI. However, the cost of the JNI call can be significant as are the difficulties of ensuring memory is properly aligned for SIMD execution
+  		%In HotSpot versions beginning with Java 7u40, the server compiler provides support for auto-vectorisation. According to JDK-6340864
+		%However, this seems to be true only for "simple loops" - at least for the moment. For example, accumulating an array cannot be vectorised yet JDK-7192383
+		Vector arithmetic is not supported yet. Only array initialization and array copy.
+  		\begin{itemize}
+  			\item \url{http://bugs.java.com/view_bug.do?bug_id=6340864}
+  			\item \url{http://bugs.java.com/view_bug.do?bug_id=7192383}
+  		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{Cost of JNI Call	in HotSpot}
+  	\end{frame}
 \end{document}
