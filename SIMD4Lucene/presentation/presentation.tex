@@ -11,7 +11,8 @@
 	positioning,
 	scopes,
 	quotes,
-	shapes	
+	shapes,
+	shadows	
 }
 
 \title{Fast Decompression Lucene Codec}
@@ -156,15 +157,22 @@
   	\begin{frame}
 %With conventional scalar operations, four add instructions must be executed one after another to obtain the sums as shown
     		\frametitle{What is SISD?}
-    		\begin{itemize}
-    		    \item Single Instruction Single Data (SISD)
-    		    	\vskip15pt 
-    		    \begin{tikzpicture}[start chain = going right]
-   				\node[on chain] (A) {A};
-   				\node[on chain,join=by {->}] (B) {B};
-   				\node[on chain,join=by {<-}] (C) {C};
-			\end{tikzpicture}
-		\end{itemize}
+    		Single Instruction Single Data (SISD)
+    		\vskip15pt 
+  		\tikzset{% define the style of the nodes for drawing the squares
+     		mysquare/.style={shape=rectangle,draw=black!100,thick,top 						color=white}
+   		}
+
+  		\begin{tikzpicture}
+    			\foreach \x in {0,...,3} {% loop over the three rows
+       		\node[mysquare] at (0,-\x) {$A_\x$};
+       		\node at (1,-\x) {$+$};
+       		\node[mysquare] at (2,-\x) {$B_\x$};
+       		\node at (3,-\x) {$=$};
+       		\node[mysquare] at (4,-\x) {$C_\x$};
+    			}
+		 \end{tikzpicture}
+		
   	\end{frame}
   	\begin{frame}
     		\frametitle{What is SIMD?}
@@ -185,8 +193,7 @@
     		    \item cons
     		    \begin{itemize}
     		    		\item not all algorithms can be vectorized
-    		    		\item most compilers don't generate SIMD instructions
-    		    		\item SIMD may have restrictions on data alignment
+    		    		\item {\color{red!100}TODO}
     		    \end{itemize}
 		\end{itemize}
   	\end{frame}  	
@@ -203,5 +210,21 @@
   	\end{frame}
   	\begin{frame}
   		\frametitle{Cost of JNI Call	in HotSpot}
+  		\begin{itemize}
+  			\item Move arguments according to ABI.
+  			\item Wrap object references to JNI handles.
+  			\item Obtain JNIEnv*, jclass/jobject and pass them as parameters.
+  			\item Check if should call method\_entry trace function.
+  			\item Lock an object monitor if the method is synchronized.
+  			\item Check if the native function is linked already.%Function lookup and linking is performed lazily.
+  			\item Switch thread from in\_java to in\_native state.
+  			\item Call the native function.
+  			\item Check if safepoint is needed.
+  			\item Return thread to in\_java state.
+  			\item Unlock monitor if locked.
+  			\item Notify method\_exit.
+  			\item Unwrap object result and reset JNI handles block.
+  			\item Handle JNI exceptions.
+  		\end{itemize}
   	\end{frame}
 \end{document}
