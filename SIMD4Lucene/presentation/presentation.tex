@@ -4,6 +4,8 @@
 \usepackage{makecell}
 \usepackage{pgfplots}
 \usepackage{pgfplotstable} 
+%\pgfplotsset{compat=1.12}
+\usepackage{sansmath}
 \usetheme{Berlin}
 \usetikzlibrary{
 	arrows.meta,
@@ -16,11 +18,23 @@
 	shapes,
 	shadows	
 }
-
 \title{Fast Decompression Lucene Codec}
 \author{Ivan Mamontov\\ Grid Dynamics}
 \institute{Berlin Buzzwords}
 \date{Jun 1st, 2015}
+
+
+\pgfplotstableread[col sep=comma]{
+a,b,c,d,e
+128,  82.638  ,200.452 ,194.441  ,330.123  
+256,  139.914 ,261.881 ,346.855  ,583.440  
+512,  225.505 ,341.506 ,592.312  ,1046.636 
+1024, 396.605 ,518.709 ,1100.371 ,2149.478 
+2048, 743.370 ,868.560 ,2089.506 ,4058.115 
+4096, 1436.633,1557.861,4204.929 ,8023.846 
+8192, 2827.855,2953.913,7758.365 ,14458.539
+16384,5654.820,5779.984,14938.887,25235.819
+}\mytable
 
 \begin{document}
 	\begin{frame}
@@ -162,7 +176,7 @@
     		Single Instruction Single Data (SISD)
     		\vskip15pt 
   		\tikzset{% define the style of the nodes for drawing the squares
-     		mysquare/.style={shape=rectangle,draw=black!100,thick,top 						color=white}
+     		mysquare/.style={shape=rectangle,draw=black!                       			100,thick,top color=white}
    		}
 
   		\begin{tikzpicture}
@@ -180,7 +194,20 @@
     		\frametitle{What is SIMD?}
     		\begin{itemize}
     		    \item Single Instruction Multiple Data (SIMD)
-		    
+    		    \vskip15pt 
+  			\tikzset{
+     			mysquare/.style={shape=rectangle,draw=black!			                100,thick,top color=white}
+   			}
+		    \begin{tikzpicture}% use positioning to put the boxes together
+    				\foreach \letter/\col/\x in {A/yellow!30/0, B/green!40/2, C/red!50/4} {
+      				\node[mysquare=\col] (\letter 0) at (\x,0){$\letter_0$};
+      				\node[below=-1pt of \letter 0,mysquare=\col] (\letter 1) {$\letter_1$};
+      				\node[below=-1pt of \letter 1,mysquare=\col] (\letter 2) {$\letter_2$};
+      				\node[below=-1pt of \letter 2,mysquare=\col] (\letter 3) {$\letter_3$};
+    				}
+    				\node at (1,-0.8) {$+$};% place + and = by hand
+    				\node at (3,-0.8) {$=$};
+  			\end{tikzpicture}
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
@@ -251,67 +278,69 @@
   	\end{frame}  
   	\begin{frame}
   		\frametitle{Experiment}
-  		\begin{tikzpicture}
-			\begin{loglogaxis}[
-			   		/pgf/number format/.cd,
-        				use comma,
-        				1000 sep={},
-					xmode=log,
-					log basis x=2,
-					log basis y=2,
-					log ticks with fixed point,
-					xlabel={Block size},
-					ylabel={Decoding latency, ns/op},
-					grid=major,
-					legend entries={Critical, JNI, FOR, VInt},
-					legend pos=south east,
-					xmin=128,xmax=16384,
-					ymin=60,ymax=30000,
-					ytick={120, 240, 480, 960, 1920, 3840, 7680, 15360},
-					xtick=data
-				]
-				\addplot[red,very thick,mark=square*] coordinates {     
-      				(128, 82.638)
-				    (256, 139.914) 
-      				(512, 225.505)
-      				(1024, 396.605) 
-      				(2048, 743.370) 
-      				(4096, 1436.633)
-      				(8192, 2827.855)
-      				(16384, 5654.820)
-      			};    
-      			\addplot[green,very thick,mark=triangle*] coordinates {     
-      				(128, 200.452)
-				    (256, 261.881) 
-      				(512, 341.506)
-      				(1024, 518.709) 
-      				(2048, 868.560) 
-      				(4096, 1557.861)
-      				(8192, 2953.913)
-      				(16384, 5779.984)
-      			};    
-      			\addplot[blue,very thick,mark=diamond*] coordinates {     
-      				(128, 194.441)
-				    (256, 346.855) 
-      				(512, 592.312)
-      				(1024, 1100.371) 
-      				(2048, 2089.506) 
-      				(4096, 4204.929)
-      				(8192, 7758.365)
-      				(16384, 14938.887)
-      			}; 
-      			\addplot[orange,very thick,mark=*] coordinates{     
-      				(128, 330.123)
-				    (256, 583.440) 
-      				(512, 1046.636)
-      				(1024, 2149.478) 
-      				(2048, 4058.115) 
-      				(4096, 8023.846)
-      				(8192, 14458.539)
-      				(16384, 25235.819)
-      			}; 
-			\end{loglogaxis}
+			\begin{tikzpicture}
+			\pgfkeys{/pgf/number format/.cd,use comma,1000 sep={},}
+    			\begin{loglogaxis}[
+            		log basis x=2,log basis y=2,
+            		%label style={font=\tiny},
+            		xlabel={Block size},ylabel={Decoding latency, ns/op},
+            		legend entries={Critical, JNI, FOR, VInt},
+            		xmin=96,xmax=24576,
+            		ymin=60,ymax=30720,
+            		separate axis lines,
+            		axis x line*=bottom,
+            		axis y line*=left,
+            		axis line style={draw=gray!50},
+            	ytick={60,120,240,480,960,1920,3840,7680,15360,30720},           			xtick={96,192,384,768,1536,3072,6144,12288, 24576},
+            		yticklabel={\pgfkeys{/pgf/fpu}\pgfmathparse{60*(2^(\ticknum))}%
+                        \pgfmathprintnumber[fixed,precision=0]\pgfmathresult%
+                        \pgfkeys{/pgf/fpu=false}%
+                        },
+		            xticklabel={\pgfkeys{/pgf/fpu}\pgfmathparse{2^(7+\ticknum)}%
+                        \pgfmathprintnumber[fixed]\pgfmathresult%
+                        \pgfkeys{/pgf/fpu=false}%
+                        },
+            x tick label as interval,
+            ymajorgrids,
+            tick align=outside,
+            legend style={draw=none,fill=none,
+                          at={(axis description cs:1.1,0.5)}, 
+                          anchor=west,
+                          %nodes={font=\tiny}
+                          },
+            tick label style={font=\tiny}
+        ]
+        			\addplot[red,very thick,mark=square*]     table[x=a,y=b] {\mytable};    
+        			\addplot[green,very thick,mark=triangle*] table[x=a,y=c] {\mytable};    
+        			\addplot[blue,very thick,mark=diamond*]   table[x=a,y=d] {\mytable}; 
+        			\addplot[orange,very thick,mark=*]        table[x=a,y=e] {\mytable}; 
+    			\end{loglogaxis}
 		\end{tikzpicture}
 	\end{frame}  		
-	
+	\begin{frame}
+		\frametitle{SIMD codec}
+		\begin{itemize}
+		    \item based on Lucene50 codec
+			\item still in progress so it does not support
+			\begin{itemize}
+				\item freqs
+				\item positions
+				\item offsets
+				\item payloads
+			\end{itemize}			
+		\end{itemize}
+		Fork me on GitHub \url{http://git.io/vkY1o}
+	\end{frame}
+	\begin{frame}
+		\frametitle{Lucene benchmark}
+		\begin{itemize}
+			\item indexes all of Wikipedia's English XML export
+				\begin{itemize}
+					\item only documents are indexed: term frequencies and positions are omitted
+					\item one large segment is used(about 1GB)
+					\item 
+				\end{itemize}
+			\item measures how long it takes to search top 100000 frequent terms
+		\end{itemize}
+	\end{frame}
 \end{document}
