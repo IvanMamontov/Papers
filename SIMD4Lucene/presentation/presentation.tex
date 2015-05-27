@@ -2,6 +2,8 @@
 \usepackage[latin1]{inputenc}
 \usepackage{tikz}
 \usepackage{makecell}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable} 
 \usetheme{Berlin}
 \usetikzlibrary{
 	arrows.meta,
@@ -218,7 +220,7 @@
   			\item Lock an object monitor if the method is synchronized.
   			\item Check if the native function is linked already.%Function lookup and linking is performed lazily.
   			\item Switch thread from in\_java to in\_native state.
-  			\item Call the native function.
+  			\item \textbf{Call the native function.}
   			\item Check if safepoint is needed.
   			\item Return thread to in\_java state.
   			\item Unlock monitor if locked.
@@ -227,4 +229,89 @@
   			\item Handle JNI exceptions.
   		\end{itemize}
   	\end{frame}
+  	\begin{frame}
+  		\frametitle{JDK-7013347 Critical Native}
+  		\begin{itemize}
+  			\item Critical native looks like JNI method
+  			\item Uses \textit{JavaCritical\_} prefix instead of \textit{Java\_}
+  			\item JavaCritical interface does not wrap arrays	 of primitives
+  			\item See details in \url{https://bugs.openjdk.java.net/browse/JDK-7013347}
+  		\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{JDK-7013347 Critical Native}
+  		Critical method should:	
+  		\begin{itemize}
+  			\item be static and not synchronized
+  			\item not throw exceptions
+  			\item use java primitives and arrays of primitives
+  			\item have "deafult" JNI implementation
+  			\item work as fast as possible(it blocks GC)
+  		\end{itemize}
+  	\end{frame}  
+  	\begin{frame}
+  		\frametitle{Experiment}
+  		\begin{tikzpicture}
+			\begin{loglogaxis}[
+			   		/pgf/number format/.cd,
+        				use comma,
+        				1000 sep={},
+					xmode=log,
+					log basis x=2,
+					log basis y=2,
+					log ticks with fixed point,
+					xlabel={Block size},
+					ylabel={Decoding latency, ns/op},
+					grid=major,
+					legend entries={Critical, JNI, FOR, VInt},
+					legend pos=south east,
+					xmin=128,xmax=16384,
+					ymin=60,ymax=30000,
+					ytick={120, 240, 480, 960, 1920, 3840, 7680, 15360},
+					xtick=data
+				]
+				\addplot[red,very thick,mark=square*] coordinates {     
+      				(128, 82.638)
+				    (256, 139.914) 
+      				(512, 225.505)
+      				(1024, 396.605) 
+      				(2048, 743.370) 
+      				(4096, 1436.633)
+      				(8192, 2827.855)
+      				(16384, 5654.820)
+      			};    
+      			\addplot[green,very thick,mark=triangle*] coordinates {     
+      				(128, 200.452)
+				    (256, 261.881) 
+      				(512, 341.506)
+      				(1024, 518.709) 
+      				(2048, 868.560) 
+      				(4096, 1557.861)
+      				(8192, 2953.913)
+      				(16384, 5779.984)
+      			};    
+      			\addplot[blue,very thick,mark=diamond*] coordinates {     
+      				(128, 194.441)
+				    (256, 346.855) 
+      				(512, 592.312)
+      				(1024, 1100.371) 
+      				(2048, 2089.506) 
+      				(4096, 4204.929)
+      				(8192, 7758.365)
+      				(16384, 14938.887)
+      			}; 
+      			\addplot[orange,very thick,mark=*] coordinates{     
+      				(128, 330.123)
+				    (256, 583.440) 
+      				(512, 1046.636)
+      				(1024, 2149.478) 
+      				(2048, 4058.115) 
+      				(4096, 8023.846)
+      				(8192, 14458.539)
+      				(16384, 25235.819)
+      			}; 
+			\end{loglogaxis}
+		\end{tikzpicture}
+	\end{frame}  		
+	
 \end{document}
