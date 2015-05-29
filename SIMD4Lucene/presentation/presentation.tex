@@ -23,7 +23,7 @@
 \institute{Berlin Buzzwords}
 \date{Jun 1st, 2015}
 \titlegraphic{
-	\includegraphics[width=3.8cm]{resources/buzzwordslogo.png}			\hspace*{8.75cm}~
+%	\includegraphics[width=3.8cm]{resources/buzzwordslogo.png}			\hspace*{8.75cm}~
 }
 
 
@@ -45,29 +45,39 @@ a,b,c,d,e
 	\end{frame}
 	\begin{frame}
     		\begin{itemize}
-    		    \item TOC!!!
+    			\frametitle{About me}
+    		    \item Software engineer at Grid Dynamics
+    		    \item I am interested in low-level system programming
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
-  		\frametitle{Data encoding and file formats}
+  		\frametitle{Agenda}
+  			\begin{itemize}
+  			\item Lucene Codecs
+  			\item What is SIMD?
+  			\item Java Critical
+  			\item Benchmarking
+  			\end{itemize}
+  	\end{frame}
+  	\begin{frame}
+  		\frametitle{Lucene Codec}
   		\begin{itemize}
-  			\item Lucene 3.x and before
+  			\item Lucene 3
   			\begin{itemize}
   				\item Tuned to pre-defined data types
-  				\item Combinations of delta encoding and variable length byte encodings
-  				\item Hardcoded choices -- impossible to customize
+  				\item Combinations of delta and variable-byte encodings
+  				\item Impossible to customize
   				\item Dependencies on specific file-system behaviors
-  				\item Data coding happened in many places
   			\end{itemize}
-	  			\item Lucene 4 and onwards
+	  			\item Lucene 4
   					\begin{itemize}
   						\item All data writing and reading abstracted from data encoding
-  						\item Highly customizable, easy to use API
+  						\item Highly customizable
   					\end{itemize}		
   		\end{itemize}
   	\end{frame}
   	\begin{frame}
-  		\frametitle{Lucene 5.0 index format}
+  		\frametitle{Lucene 5.0 codec}
   		The default Lucene50 codec is:
   		\begin{itemize}
   			\item variable-byte and fixed-width encoding of delta values
@@ -79,18 +89,11 @@ a,b,c,d,e
 
   	\begin{frame}
   		\frametitle{What is variable-byte encoding?}
-%  		\begin{itemize}
-%  			\item uses an integral number of bytes to encode a gap
-%  			\begin{itemize}
-%  				\item the first bit of the byte is a continuation bit. It is set to 1 for the last byte of the encoded gap and to 0 otherwise
-%  				\item the last 7 bits of a byte are \textbf{payload} and encode part of the gap
-%  			\end{itemize}
-%  		\end{itemize}
   		Encode sequence of numbers into variable-length bytes using one status bit per byte indicating whether the current number expands into next byte.
   	\end{frame}
   	\begin{frame}
   		\frametitle{What is variable-byte encoding?}
-  		To encode the decimal number 6917:
+  		To encode the decimal number 6917(00011011 00000101):
 		\vskip15pt 
   		\begin{tikzpicture}[
  		      	start chain = going right,
@@ -122,13 +125,13 @@ a,b,c,d,e
     		    \end{itemize}
     		    \item cons
     		    \begin{itemize}
-    		    		\item it requires an if statement on every byte	during decode, which is very costly since the CPU cannot easily predict the branch outcome.
+    		    		\item it requires an if statement on every byte	during decode% which is very costly since the CPU cannot easily predict the branch outcome.
     		    \end{itemize}
 		\end{itemize}
   	\end{frame}
   	\begin{frame}
   		\frametitle{What is FOR encoding?}
-  		Frame-of-reference encoding takes each fixed block of integers and stores them all as packed values, where each value gets N bits, set by the maximum int in the block.	
+  		Frame-of-reference encoding takes each fixed block of integers and stores them all as packed delta values, where each value gets N bits, set by the maximum delta in the block.	
   	\end{frame}
   	\begin{frame}
   		\frametitle{What is FOR encoding?}
@@ -159,19 +162,20 @@ a,b,c,d,e
   		\begin{itemize}
     		    \item pros
     		    \begin{itemize}
-    		    		\item two times faster during decoding than VInt % Up to 2 times faster than in \mbox{variable-byte} encoding
-    		    		\item {\color{red!100} TODO something about SIMD/modern CPUs}
+    		    		\item two times faster during decoding than VInt % Up to 2 times faster than in variable-byte encoding
+    		    		\item \textbf{can be processed using a vectorized version} (SIMD)
     		    \end{itemize}
     		    \item cons
     		    \begin{itemize}
     		    		\item in order to access even one int within the block, we must decode the full block
     		    		\item requires integers in batches of multiples of 32
+    		    		\item the cost is determined by the largest delta in a block
     		    \end{itemize}
 		\end{itemize}  		
   	\end{frame}
   	\begin{frame}
 %With conventional scalar operations, four add instructions must be executed one after another to obtain the sums as shown
-    		\frametitle{What is SISD?}
+    		\frametitle{What is SIMD?}
     		Single Instruction Single Data (SISD)
     		\vskip15pt 
   		\tikzset{% define the style of the nodes for drawing the squares
@@ -191,8 +195,7 @@ a,b,c,d,e
   	\end{frame}
   	\begin{frame}
     		\frametitle{What is SIMD?}
-    		\begin{itemize}
-    		    \item Single Instruction Multiple Data (SIMD)
+    		    Single Instruction Multiple Data (SIMD)
     		    \vskip15pt 
   			\tikzset{
      			mysquare/.style={shape=rectangle,draw=black!			                100,thick,top color=white}
@@ -207,10 +210,9 @@ a,b,c,d,e
     				\node at (1,-0.8) {$+$};% place + and = by hand
     				\node at (3,-0.8) {$=$};
   			\end{tikzpicture}
-		\end{itemize}
   	\end{frame}
   	\begin{frame}
-    		\frametitle{Why does it matter?}
+    		\frametitle{What is SIMD?}
     		\begin{itemize}
     		    \item pros
     		    \begin{itemize}
@@ -221,12 +223,34 @@ a,b,c,d,e
     		    \item cons
     		    \begin{itemize}
     		    		\item not all algorithms can be vectorized
-    		    		\item {\color{red!100}TODO}
+    		    		\item in complicated cases compilers don't able to vectorize
     		    \end{itemize}
 		\end{itemize}
   	\end{frame}  	
+  	\begin{frame}[fragile=singleslide]
+  		%Let us explain this with an example:
+  		%The code in example 1b can be reduced to just 4 machine instructions if the
+		%instruction set AVX or higher is enabled. The SSE2 instruction set will give 8
+		%machine instructions because the maximum vector register size is half as big for
+		%instruction sets prior to AVX. The code in example 1a will generate approximately
+		%44 instructions if the compiler does not automatically vectorize the code.
+    		\frametitle{What is SIMD?}
+		\begin{verbatim}
+float a[8], b[8], c[8];       
+...
+for (int i = 0; i < 8; i++) { 
+ c[i] = a[i] + b[i]*1.5f;     
+}
+		\end{verbatim}
+		\begin{itemize}
+			\item JIT $\approx86$ machine instructions
+			\item gcc $\approx44$ machine instructions without vectorization
+			\item gcc -- 8 machine instructions with SSE2
+			\item gcc -- 4 machine instructions with AVX
+		\end{itemize}
+  	\end{frame}  	
   	\begin{frame}
-  		\frametitle{SIMD auto-vectorization in HotSpot}
+  		\frametitle{Auto-vectorization in HotSpot}
   		%Sometimes it is possible to move the kernel to C/C++, use SIMD there and call via JNI. However, the cost of the JNI call can be significant as are the difficulties of ensuring memory is properly aligned for SIMD execution
   		%In HotSpot versions beginning with Java 7u40, the server compiler provides support for auto-vectorisation. According to JDK-6340864
 		%However, this seems to be true only for "simple loops" - at least for the moment. For example, accumulating an array cannot be vectorised yet JDK-7192383
@@ -276,7 +300,7 @@ a,b,c,d,e
   		\end{itemize}
   	\end{frame}  
   	\begin{frame}
-  		\frametitle{Experiment}
+  		\frametitle{Microbenchmark}
   			%The vectorized version is roughly twice as fast as the scalar version
 			\begin{tikzpicture}
 			\pgfkeys{/pgf/number format/.cd,use comma,1000 sep={},}
@@ -316,11 +340,28 @@ a,b,c,d,e
         			\addplot[orange,very thick,mark=*]        table[x=a,y=e] {\mytable}; 
     			\end{loglogaxis}
 		\end{tikzpicture}
-	\end{frame}  		
+	\end{frame}  	
 	\begin{frame}
-		\frametitle{SIMD codec}
+  		\frametitle{Microbenchmark results}
+  		\begin{center}
+ 			\begin{tabular}{|l|c c c|} 
+ 				\hline
+ 				& FOR & NativeFOR & Pct diff \\ [0.5ex] 
+ 				\hline
+				instructions/op & 1284 & 379 & {\color{red!100}$+298\%$}\\
+ 				\hline
+				cycles/op & 486 & 223 & {\color{red!100}$+195\%$}\\
+ 				\hline
+ 				branches/op & 137 & 22 & {\color{red!100}$+448\%$}\\
+ 				\hline
+			\end{tabular}
+		\end{center}	
+  	\end{frame}	
+	\begin{frame}
+		\frametitle{Native FOR codec}
 		\begin{itemize}
 		    \item based on Lucene50 codec
+		    \item uses \url{https://github.com/lemire/simdcomp} as native FOR implementation
 			\item still in progress so it does not support
 			\begin{itemize}
 				\item freqs
@@ -329,7 +370,7 @@ a,b,c,d,e
 				\item payloads
 			\end{itemize}			
 		\end{itemize}
-		Fork me on GitHub \url{http://git.io/vkY1o}
+		Source code available at \url{http://git.io/vkY1o}
 	\end{frame}
 	\begin{frame}
 		\frametitle{Lucene benchmark}
@@ -339,7 +380,7 @@ a,b,c,d,e
 					\item only documents are indexed: term frequencies and positions are omitted
 					\item one large segment is used(about 1GB)
 				\end{itemize}
-			\item measures how long it takes to search top 100K frequent terms
+			\item measures how long it takes to search top 10K frequent terms
 			\item environment
 			\begin{itemize}
 				\item i5-4300M CPU @ 2.60GHz (Haswell)
@@ -347,27 +388,31 @@ a,b,c,d,e
 				\item JRE 1.8.0\_401
 				\item gcc 4.9.2 
 			\end{itemize}
+			\item ant run-task -Dtask.alg=conf/searchOnlyWiki.alg -Dtask.mem=8G
 		\end{itemize}
 	\end{frame}
 	\begin{frame}
-		\frametitle{Benchmarking Results}
+		\frametitle{Benchmark results}
 		\begin{center}
  			\begin{tabular}{|l|c c c|} 
  				\hline
- 				& Lucene50 & SIMD SSE4.1 & SIMD AVX \\ [0.5ex] 
+ 				& Lucene50 & Native with AVX & Pct diff\\ [0.5ex] 
+ 				\hline 
+				index duration, s. & 768 & 760 & 1\%\\
  				\hline
-				Indexation & & & \\ 
-				Duration s. & 6 & 87837 & 787 \\
- 				\hline
- 				Search & 7 & 78 & 5415 \\
+ 				search duration, s. & 60 & 49  & 18\%\\
  				\hline
 			\end{tabular}
 		\end{center}	
 	\end{frame}
 	\begin{frame}
 		\frametitle{Future work}
-	\end{frame}
-	\begin{frame}
-		\frametitle{Conclusions}
+		\begin{itemize}
+			\item Fast compression and intersection of lists of sorted integers \url{https://github.com/lemire/SIMDCompressionAndIntersection}
+			\item Fast decoder for VByte-compressed integers \url{https://github.com/lemire/MaskedVByte}
+			\item Native roaring codec
+			\item Native facet component
+			\item Native docvalues decoder
+		\end{itemize}
 	\end{frame}
 \end{document}
