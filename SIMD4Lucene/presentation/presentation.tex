@@ -274,8 +274,8 @@ for (int i = 0; i < 4; i++) {
   		Critical native looks like JNI method:
   		\begin{itemize}
   			\item static and not synchronized
-  			\item not throw exceptions
-  			\item does not use wrappers
+  			\item doesn't throw exceptions
+  			\item doesn't use wrappers
   			\item works with primitives
   		\end{itemize}
   		\vskip15pt
@@ -305,16 +305,14 @@ for (int i = 0; i < 4; i++) {
 		\item critical\_JNI -- critical native call
 		\end{itemize}
 		\end{itemize}
-		Environment
+
 			\begin{itemize}
 				\item i5-4300M CPU @ 2.60GHz (Haswell)
-				\item fedora 21 (kernel 3.17.4)
-				\item JRE 1.8.0\_40
-				\item gcc 4.9.2 
+				\item JRE 1.8.0\_40 + gcc 4.9.2
 			\end{itemize}
 		\vskip15pt
-		Decodes blocks with fixed size\\
-		Every block contains random elements with fixed density
+		
+		Source code available at \url{http://git.io/vkSOT}\\
 	\end{frame}
   	\begin{frame}
   		\frametitle{Microbenchmark}
